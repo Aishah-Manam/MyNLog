@@ -1,0 +1,78 @@
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using NLog;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using LogLevel = NLog.LogLevel;
+using System.Net.Http;
+using System.Threading;
+using Newtonsoft.Json.Linq;
+
+
+namespace LoggingExample.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ValuesController : ControllerBase
+    {
+        // Inject Nlog as Logger
+        private static Logger logger = LogManager.GetLogger("*");
+        
+        // Inject ILogger, _logger is ILogger
+        private readonly ILogger<ValuesController> _logger;
+        public ValuesController(ILogger<ValuesController> logger) : base()
+        {
+            _logger = logger;
+        }
+
+        // GET api/values
+        [HttpGet]
+        public ActionResult<IEnumerable<string>> Get()
+        {
+            var requestDateUtc = DateTime.UtcNow;
+            
+            //logger is NLog
+            Logger logger = LogManager.GetCurrentClassLogger();
+            
+            // Set dummy values using Event-Properties NLog context
+            LogEventInfo theEvent1 = new LogEventInfo(LogLevel.Debug, null, "Using Event-Properties");
+            theEvent1.Properties["RequestUrl"] = "dummyurl2";
+            theEvent1.Properties["RequestMethod"] = "dummyMethod2";
+            theEvent1.Properties["RequestDate"] = requestDateUtc;
+            theEvent1.Properties["Headers"] = "dummyHeader2"; ;
+            theEvent1.Properties["Body"] = "dummyBody2";
+            theEvent1.Properties["Response"] = "dummyResponse2";
+            theEvent1.Properties["WebRootPath"] = "dummywebrootpath2"; ;
+
+            // using Nlog to log event1
+            logger.Log(theEvent1); 
+            
+            var log = new
+            {
+                RequestUrl = "dummyurl1",
+                RequestMethod = "dummyMethod1",
+                RequestDate = requestDateUtc,
+                Headers = "dummyHeader1",
+                Body = "dummyBody1",
+                Response = "dummyResponse1",
+                ResponseDate = DateTime.UtcNow,
+                WebRootPath = "dummywebrootpath1"
+            };
+            
+            //using iLog logger with NLog event-property context
+            _logger.LogInformation("Event-Property: ${all-event-properties}", theEvent1); 
+            
+            //using NLog loggger with NLog event-property context
+            logger.Info("Event-Property: ${all-event-properties}", theEvent1);
+            
+            //Check default property value of Event-Properties with aspnet-request etc
+            LogEventInfo theEvent2 = new LogEventInfo(LogLevel.Debug, null, "No Event-Properties Value");
+            logger.Log(theEvent2);
+
+            return new string[] { "You Got This!" };
+        }
+    }
+}
